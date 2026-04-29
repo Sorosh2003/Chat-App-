@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Chat | Connect with Others</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <i class="fas fa-comments"></i>
+      <h1>Real-Time Chat</h1>
+      <p>Connect and chat with people in real-time</p>
+      <input type="text" id="username" placeholder="Enter your username" maxlength="20">
+      <button id="joinBtn" class="join-btn">Join Chat <i class="fas fa-arrow-right"></i></button>
+    </div>
+  </div>
+
+  <!-- Chat Room -->
+  <div id="chatRoom" class="chat-room" style="display: none;">
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <i class="fas fa-comment-dots"></i>
+        <h2>Chat Room</h2>
+      </div>
+      <div id="onlineCount" class="online-count">
+        <i class="fas fa-circle"></i>
+        <span>0 online</span>
+      </div>
+    </div>
+
+    <div class="chat-main">
+      <!-- Online Users Sidebar -->
+      <div class="online-users">
+        <h3><i class="fas fa-users"></i> Online Users</h3>
+        <div id="usersList" class="users-list"></div>
+      </div>
+
+      <!-- Messages Area -->
+      <div class="messages-area">
+        <div id="messages" class="messages-container"></div>
+        <div id="typingIndicator" class="typing-indicator"></div>
+        <div class="message-input-area">
+          <input type="text" id="messageInput" placeholder="Type your message..." autocomplete="off">
+          <button id="sendBtn" class="send-btn">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
