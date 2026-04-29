@@ -1,142 +1,59 @@
-const socket = io();
+const express = require('express');
+const path = require('path');
+const http = require('http');
+const socketIO = require('socket.io');
 
-let currentUser = '';
+const app = express();
+const server = http.createServer(app);
+const io = socketIO(server);
 
-// DOM Elements
-const loginScreen = document.getElementById('loginScreen');
-const chatRoom = document.getElementById('chatRoom');
-const usernameInput = document.getElementById('username');
-const joinBtn = document.getElementById('joinBtn');
-const messageInput = document.getElementById('messageInput');
-const sendBtn = document.getElementById('sendBtn');
-const messagesContainer = document.getElementById('messages');
-const usersList = document.getElementById('usersList');
-const onlineCountSpan = document.querySelector('#onlineCount span');
-const typingIndicator = document.getElementById('typingIndicator');
+const PORT = process.env.PORT || 3000;
 
-let typingTimeout;
+// Serve static files from the current directory (where index.html is)
+app.use(express.static(__dirname));
 
-// Join chat
-joinBtn.addEventListener('click', () => {
-  const username = usernameInput.value.trim();
-  if (username === '') {
-    alert('Please enter a username');
-    return;
-  }
-  
-  currentUser = username;
-  socket.emit('user-joined', username);
-  
-  loginScreen.style.display = 'none';
-  chatRoom.style.display = 'block';
-  messageInput.focus();
+// Make sure index.html is served for root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Send message
-function sendMessage() {
-  const message = messageInput.value.trim();
-  if (message === '') return;
-  
-  socket.emit('send-message', {
-    username: currentUser,
-    message: message
+const users = {};
+
+io.on('connection', (socket) => {
+  console.log('New user connected:', socket.id);
+
+  socket.on('user-joined', (username) => {
+    users[socket.id] = username;
+    socket.broadcast.emit('user-joined', username);
+    io.emit('online-users', Object.values(users));
   });
-  
-  messageInput.value = '';
-  messageInput.focus();
-}
 
-sendBtn.addEventListener('click', sendMessage);
-messageInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    sendMessage();
-  }
-});
-
-// Typing indicator
-messageInput.addEventListener('input', () => {
-  socket.emit('typing', currentUser);
-  clearTimeout(typingTimeout);
-  typingTimeout = setTimeout(() => {
-    socket.emit('stop-typing');
-  }, 1000);
-});
-
-// Receive message
-socket.on('receive-message', (data) => {
-  addMessage(data.username, data.message, data.time, data.username === currentUser);
-});
-
-// User joined
-socket.on('user-joined', (username) => {
-  addSystemMessage(`${username} joined the chat`);
-});
-
-// User left
-socket.on('user-left', (username) => {
-  addSystemMessage(`${username} left the chat`);
-});
-
-// Update online users
-socket.on('online-users', (users) => {
-  updateOnlineUsers(users);
-  onlineCountSpan.textContent = `${users.length} online`;
-});
-
-// Typing indicator
-socket.on('user-typing', (username) => {
-  typingIndicator.textContent = `${username} is typing...`;
-});
-
-socket.on('stop-typing', () => {
-  typingIndicator.textContent = '';
-});
-
-// Add message to chat
-function addMessage(username, message, time, isSent) {
-  const messageDiv = document.createElement('div');
-  messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
-  messageDiv.innerHTML = `
-    <div class="message-info">
-      <span class="message-sender">${username}</span>
-      <span class="message-time">${time || new Date().toLocaleTimeString()}</span>
-    </div>
-    <div class="message-text">${escapeHtml(message)}</div>
-  `;
-  messagesContainer.appendChild(messageDiv);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-// Add system message
-function addSystemMessage(message) {
-  const messageDiv = document.createElement('div');
-  messageDiv.className = 'system-message';
-  messageDiv.textContent = message;
-  messagesContainer.appendChild(messageDiv);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-// Update online users list
-function updateOnlineUsers(users) {
-  usersList.innerHTML = '';
-  users.forEach(user => {
-    const userDiv = document.createElement('div');
-    userDiv.className = 'user-item';
-    userDiv.innerHTML = `
-      <i class="fas fa-circle"></i>
-      <span>${escapeHtml(user)}</span>
-    `;
-    usersList.appendChild(userDiv);
+  socket.on('send-message', (data) => {
+    io.emit('receive-message', {
+      username: data.username,
+      message: data.message,
+      time: new Date().toLocaleTimeString()
+    });
   });
-}
 
-// Escape HTML to prevent XSS
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
+  socket.on('typing', (username) => {
+    socket.broadcast.emit('user-typing', username);
   });
-}
+
+  socket.on('stop-typing', () => {
+    socket.broadcast.emit('stop-typing');
+  });
+
+  socket.on('disconnect', () => {
+    const username = users[socket.id];
+    if (username) {
+      delete users[socket.id];
+      io.emit('user-left', username);
+      io.emit('online-users', Object.values(users));
+    }
+  });
+});
+
+server.listen(PORT, () => {
+  console.log(`🚀 Chat server running at http://localhost:${PORT}`);
+});
