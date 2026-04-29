@@ -1,3 +1,7 @@
+
+So first of all welcome to my Repository, the codes have been tested and there is no any error or bug, but the backend might not work on github live 
+if you wnat to test how it works feel free to create  a folder and copy+paste my cpde and file structure 
+
 # 💬 Real-Time Chat Application
 
 A real-time chat application that allows multiple users to communicate instantly. Built with Socket.IO for real-time bidirectional communication.
